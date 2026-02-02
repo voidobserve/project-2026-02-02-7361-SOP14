@@ -118,32 +118,9 @@
 	那么 1单位ad值 相当于电池电池电压：
 	0.00229076628989361702127659574468  V
 */
-// #define ADC_BAT_DIFF_VAL (55) // 测得充电时 xxA
-// #define ADC_BAT_DIFF_VAL (65) //
-// #define ADC_BAT_DIFF_VAL (75) //
 
-#define ADC_BAT_DIFF_VAL (100) //
-// #define ADC_BAT_DIFF_VAL (105) //
-// #define ADC_BAT_DIFF_VAL (110) // 1.0-1.3AX
-
-// #define ADC_BAT_DIFF_VAL (120) //
-// #define ADC_BAT_DIFF_VAL (130) //
+#define ADC_BAT_DIFF_VAL (100)			//
 #define WAIT_CIRCUIT_STABLIZE_TIMES (5) // 等待电路稳定时间,单位:ms
-// #define WAIT_CIRCUIT_STABLIZE_TIMES (10) // 等待电路稳定时间
-
-// struct tmp_bat_val_fix
-// {
-//     u16 adc_bat_val;
-//     u8 tmp_bat_val_fix;
-// };
-// struct tmp_bat_val_fix bat_val_fix_table[] = {
-//     // table内每增减一项，对应会增减4个字节
-//     // { 2619, TMP_BAT_VAL_FIX + 37 },  // 6.0V
-//     { 2837, TMP_BAT_VAL_FIX + 37 },  // 6.5V
-//     { 3056, TMP_BAT_VAL_FIX + 27 },  // 7.0V
-//     { 3188, TMP_BAT_VAL_FIX + 16 },  // 7.3V
-//     { 3326, TMP_BAT_VAL_FIX + 0  },  // 7.62V
-// };
 
 // ===================================================
 // 机械按键相关配置                                  //
@@ -155,13 +132,13 @@ enum
 {
 	KEY_ID_NONE = 0,
 	KEY_ID_MODE,
-	KEY_ID_HEAT,
+	// KEY_ID_HEAT,
 };
 
 // 检测开关与模式按键的引脚
-#define KEY_MODE_PIN P01D
+#define KEY_MODE_PIN P11D
 // 检测加热的引脚
-#define KEY_HEAT_PIN P11D
+// #define KEY_HEAT_PIN P11D
 #define KEY_SCAN_TIME (10) // 按键扫描时间 ，单位： ms
 
 // 如果只消抖2次，会过滤不掉抖动
@@ -170,7 +147,7 @@ enum
 enum
 {
 	KEY_EVENT_NONE = 0,	  // 无按键事件
-	KEY_EVENT_HEAT_PRESS, // 加热按键短按
+	// KEY_EVENT_HEAT_PRESS, // 加热按键短按
 	KEY_EVENT_MODE_PRESS, // 开关/模式按键短按
 	KEY_EVENT_MODE_HOLD,  // 开关/模式按键长按
 };
@@ -180,59 +157,42 @@ volatile u8 key_event; // 存放按键事件的变量
 // LED相关配置                                      //
 // ===================================================
 // 驱动指示灯的引脚定义
-#define LED_WORKING_PIN P14D	 // 工作指示灯
-#define LED_CHARGING_PIN P04D	 // 充电指示灯
-#define LED_FULL_CHARGE_PIN P03D // 满电指示灯
-#define LED_RED					 // 红灯
-#define LED_GREEN				 // 绿灯
-#define LED_BLUE				 // 蓝灯
+#define LED_RED_PIN P14D   // 红灯
+#define LED_GREEN_PIN P04D // 绿灯
 
 #define CONTROL_HEAT_PIN P12D // 驱动控制加热的引脚
 #define LED_ON 0			  // LED点亮时，对应的驱动电平
 #define LED_OFF 1			  // LED熄灭时，对应的驱动电平
 
-#define LED_WORKING_ON()              \
-	{                                 \
-		do                            \
-		{                             \
-			LED_WORKING_PIN = LED_ON; \
-		} while (0);                  \
+#define LED_RED_ON()              \
+	{                             \
+		do                        \
+		{                         \
+			LED_RED_PIN = LED_ON; \
+		} while (0);              \
 	}
-#define LED_WORKING_OFF()              \
-	{                                  \
-		do                             \
-		{                              \
-			LED_WORKING_PIN = LED_OFF; \
-		} while (0);                   \
+#define LED_RED_OFF()              \
+	{                              \
+		do                         \
+		{                          \
+			LED_RED_PIN = LED_OFF; \
+		} while (0);               \
 	}
-#define LED_CHARGING_ON()              \
-	{                                  \
-		do                             \
-		{                              \
-			LED_CHARGING_PIN = LED_ON; \
-		} while (0);                   \
+#define LED_GREEN_ON()              \
+	{                               \
+		do                          \
+		{                           \
+			LED_GREEN_PIN = LED_ON; \
+		} while (0);                \
 	}
-#define LED_CHARGING_OFF()              \
-	{                                   \
-		do                              \
-		{                               \
-			LED_CHARGING_PIN = LED_OFF; \
-		} while (0);                    \
+#define LED_GREEN_OFF()              \
+	{                                \
+		do                           \
+		{                            \
+			LED_GREEN_PIN = LED_OFF; \
+		} while (0);                 \
 	}
-#define LED_FULL_CHARGE_ON()              \
-	{                                     \
-		do                                \
-		{                                 \
-			LED_FULL_CHARGE_PIN = LED_ON; \
-		} while (0);                      \
-	}
-#define LED_FULL_CHARGE_OFF()              \
-	{                                      \
-		do                                 \
-		{                                  \
-			LED_FULL_CHARGE_PIN = LED_OFF; \
-		} while (0);                       \
-	}
+
 /*实际测得给高电平为加热*/
 #define HEATING_ON()              \
 	{                             \
@@ -262,9 +222,17 @@ enum
 	MODE_1 = 0, // 一上电，按下电源按键，使用的模式
 	MODE_2,
 	MODE_3,
-	MODE_4,
+	// MODE_4,
 };
 volatile u8 mode_flag; // 存放模式的标志位
+enum
+{
+	SUB_MODE_NONE = 0,
+	SUB_MODE_1_BEGIN,
+	SUB_MODE_1_HANDLING, // 处理中
+	SUB_MODE_1_END,
+};
+volatile u8 sub_mode_status; // 子模式的状态机
 
 // 定义按键的状态
 enum
@@ -332,9 +300,9 @@ volatile bit_flag flag2;
 volatile bit_flag flag3;
 
 #define FLAG_IS_DEVICE_OPEN flag1.bits.bit0		// 设备是否开机的标志位，0--未开机，1--开机
-#define FLAG_IS_HEATING flag1.bits.bit1			// 加热是否工作的标志位
+// #define FLAG_IS_HEATING flag1.bits.bit1			// 加热是否工作的标志位
 #define FLAG_IS_IN_CHARGING flag1.bits.bit2		// 是否处于充电的标志位
-#define FLAG_DIR flag1.bits.bit3				// 正转，反转的标志位， 0--正转（默认是0为正转），1--反转
+// #define FLAG_DIR flag1.bits.bit3				// 正转，反转的标志位， 0--正转（默认是0为正转），1--反转
 #define FLAG_BAT_IS_NEED_CHARGE flag1.bits.bit4 // 电池是否需要充电的标志位, 0--不需要充电，1--需要充电
 #define FLAG_BAT_IS_FULL flag1.bits.bit5		// 电池是否满电的标志位，0--未满电，1--满电
 #define FLAG_IS_NOT_OPEN_DEVICE flag1.bits.bit6 // 是否允许开机的标志位，0--允许开机，1--不允许开机（但是可以充电）
@@ -346,7 +314,7 @@ volatile bit_flag flag3;
 
 #define flag_is_low_battery flag2.bits.bit2 // 标志位，是否检测到低电量
 
-#define flag_ctl_dir flag3.bits.bit0   // 控制标志位，是否要切换方向
+// #define flag_ctl_dir flag3.bits.bit0   // 控制标志位，是否要切换方向
 #define flag_ctl_speed flag3.bits.bit1 // 控制标志位，是否要切换电机转速
 
 #define flag_maybe_low_battery flag3.bits.bit2 // 标志位，可能检测到了低电量
