@@ -211,28 +211,21 @@ void Sys_Init(void)
     }
     // timer2_pwm_config();
     {
-        /* 改成使用125KHz的PWM */
         // 时钟源选择：FTMR，由TMR配置时钟源
-        T2CKS1 = 0;
         T2CKS0 = 1;
-        // 定时器高频时钟 FTMR 频率选择 FHOSC
-        TMRCKS1 = 1;
+        T2CKS1 = 0;
+        // 定时器高频时钟 FTMR 频率选择 FHOSC ：
+        // TMRCKS0 = 0;
+        // TMRCKS1 = 1;
+        // 定时器高频时钟 FTMR 频率选择 FHOSC / 2 ：
         TMRCKS0 = 0;
+        TMRCKS1 = 0;
 
-        // 定时器时钟2分频：
-        T2PRS2 = 0;
-        T2PRS1 = 0;
-        T2PRS0 = 1;
+        // T2CKS0 = 0;
+        // T2CKS1 = 0;
 
-        // T2LOAD = 209; //
-        // T2LOAD = 136; // 125.654Khz
-        // T2LOAD = 137; // 125KHz【实际测试只有116.5KHz】
-        // T2LOAD = 130;// 【实际测试是122-123KHz】
-        // T2LOAD = 129;// 【实际测试是123.7KHz】
-        // T2LOAD = 125;// 【126-127.6KHz】
-        // T2LOAD = 126;// 【126KHz】
-        T2LOAD = 127; // 【125或125.654KHz】
-
+        T2LOAD = 209; //
+        // T2LOAD = 255; //
         T2DATA = 0;
         PWM2EC = 0; // 禁止PWM输出
         T2EN = 1;
@@ -480,6 +473,14 @@ void adc_scan_handle(void)
                 need_charge_cnt++;
             }
 
+            // if (charge_time_cnt >= (u32)30 * 1000 && 0 == flag_is_led_breath_disable) // 30 * 1000ms // 测试用
+            if (charge_time_cnt >= ((u32)3 * 60 * 60 * 1000 + (u32)7 * 60 * 1000) && 0 == flag_is_led_breath_disable) // 3h7min
+            {
+                // 如果充电已经累计了一定时间
+                flag_is_led_breath_disable = 1;
+                LED_RED_OFF();  // 关闭充电时的呼吸灯
+                LED_GREEN_ON(); // 点亮绿灯，表示充满电
+            }
             if (flag_bat_is_empty)
             {
 // 如果检测到拔出了电池
@@ -631,6 +632,7 @@ void adc_scan_handle(void)
                 T2DATA = 0;
 
                 FLAG_DURING_CHARGING_BAT_IS_NULL = 0; // 清空该标志位，因为已经不在充电的情况下
+                flag_is_led_breath_disable = 0;       // 清空该标志位
                 break;
             } // if (cnt >= 8)
 
@@ -812,8 +814,6 @@ void main(void)
 {
     Sys_Init();
 
-#if 1
-
     // 上电时检测电池是否正确安装:
     PWM2EC = 1; // 打开控制升压电路的pwm
     T2DATA = 100;
@@ -882,68 +882,42 @@ void main(void)
             tmp_bat_val = adc_bat_val;
             if (adc_bat_val <= 2837) // 如果检测电池电压小于 6.5V
             {
-                // tmp_bat_val += 30;
-                tmp_bat_val += 70; /* 6.25--1.02，6.35--1.08 */
+                tmp_bat_val += 310;
             }
             else if (adc_bat_val <= 3056) // 如果检测电池电压小于 7.0V
             {
-                // tmp_bat_val += 30; //
-                tmp_bat_val += 50; // 6.64--1.01，6.70--1.03，6.80--1.028，6.90--1.10
-                // tmp_bat_val += 70; //
+                // tmp_bat_val += 250; // 0.8-0.9A
+                tmp_bat_val += 290;
             }
             else if (adc_bat_val <= 3188) // 如果检测电池电压小于 7.3V
             {
-                // tmp_bat_val += 20; //
-                tmp_bat_val += 35; // 7.20--1.08，7.25--1.04
-                // tmp_bat_val += 40; // 7.02--1.06，7.13--1.07，7.17--1.115
-                // tmp_bat_val += 60; //
+                // tmp_bat_val += 120; // 1.05A
+                tmp_bat_val += 250; //
             }
             else if (adc_bat_val <= 3326) // 如果检测电池电压小于 7.62V
             {
-                // tmp_bat_val += 10; //
-                tmp_bat_val += 20; // 7.33--0.991，7.37--1.03，7.40--1.021，7.50--1.05
-                // tmp_bat_val += 30; // 7.33--1.087
-                // tmp_bat_val += 40; //
+                tmp_bat_val += 200;
             }
             else // 如果在充电时检测到电池电压大于
             {
-                /*
-                    tmp_bat_val += 15;  这个时候常态下可能只有0.97，但是动一下线路板或者线缆，会跳到1.07A
-                    7.76--0.975，7.78--1.04，8.00--1.084
-                */
-                tmp_bat_val += 15;
-                // tmp_bat_val += 25; //
-                // tmp_bat_val += 30; // 7.70--1.06，7.73--1.100，
-                // tmp_bat_val += 35; //
-                // tmp_bat_val += 40; // 7.70--1.16，8.07V -- 1.06A，8.2V之后好像会升到1.1A，8.23V--1.08A
-                // tmp_bat_val += 45; //
-                // tmp_bat_val += 50; // 在8.08V会到1.10
-                // tmp_bat_val += 52; //
-                // tmp_bat_val += 55; //
-                // tmp_bat_val += 60; //   超过8V会到1.10
-                // tmp_bat_val += 70; // 超过8V时会超过1.1A，导致电感发热
                 tmp_bat_val -= ((u32)adc_bat_val * 157 / 1000 - 522);
             }
 
-            tmp_bat_val += 50;
-            // tmp_bat_val += 60;
-            // tmp_bat_val += 70;
-            // tmp_bat_val += 80;
-            // tmp_bat_val += 90;
-
+            {
+                u16 i;
+                for (i = 0; i < 50; i++)
+                {
+                    if (tmp_bat_val > 2)
+                    {
+                        tmp_bat_val--;
+                    }
+                }
+            }
             // if (adc_bat_val >= 3579) // 8.2V及以上 , 降低电流
             if (adc_bat_val >= 3623) // 8.30V及以上 , 降低电流
             {
                 u16 i;
-                // for (i = 0; i < 40; i++) //
-                // for (i = 0; i < 50; i++) //
-                // for (i = 0; i < 70; i++) // 8.33--0.93A
-                // for (i = 0; i < 75; i++) // 8.33--0.86A
-                // for (i = 0; i < 80; i++) // 8.34--0.88
-                // for (i = 0; i < 85; i++) // 8.33V--0.62A
-                // for (i = 0; i < 90; i++) // 8.33--0.866，
-                // for (i = 0; i < 100; i++) // 8.32--0.90A，8.34--0.89
-                for (i = 0; i < 120; i++) // 8.32--0.737，8.34--0.725
+                for (i = 0; i < 260; i++) // 会在800mA以上，800mA附近±100mA
                 {
                     if (tmp_bat_val > 2)
                     {
@@ -1003,33 +977,28 @@ void main(void)
             }
             tmp_val >>= 3;
 
-            /*
-                如果差值过大，则快速调节，如果差值过小，则慢速调节，
-                防止电流突变，导致不同的板子最终充电电流不一致
-            */
-            // static u8 cnt = 0;
-            // cnt++;
-
-            if (flag_is_adjust_pwm_time_comes)
             {
-                flag_is_adjust_pwm_time_comes = 0;
+                /*
+                    如果差值过大，则快速调节，如果差值过小，则慢速调节，
+                    防止电流突变，导致不同的板子最终充电电流不一致
+                */
+                static u8 cnt;
+                cnt++;
 
                 if (tmp_val > last_pwm_val)
                 {
-                    // if ((tmp_val - last_pwm_val) > 2 || cnt >= 10)
-                    // if ((tmp_val - last_pwm_val) > 2 || cnt >= 100)
+                    if ((tmp_val - last_pwm_val) > 2 || cnt >= 10)
                     {
                         last_pwm_val++;
-                        // cnt = 0;
+                        cnt = 0;
                     }
                 }
                 else if (tmp_val < last_pwm_val)
                 {
-                    // if ((last_pwm_val - tmp_val) > 2 || cnt >= 10)
-                    // if ((last_pwm_val - tmp_val) > 2 || cnt >= 100)
+                    if ((last_pwm_val - tmp_val) > 2 || cnt >= 10)
                     {
                         last_pwm_val--;
-                        // cnt = 0;
+                        cnt = 0;
                     }
                 }
             }
@@ -1077,8 +1046,6 @@ void main(void)
         __endasm;
 
     } // while (1)
-
-#endif
 }
 
 /************************************************
@@ -1094,9 +1061,6 @@ void int_isr(void) __interrupt
     swapar _PFLAG;
     movra _statusbuf;
     __endasm;
-
-#if 1
-
     //=======外部中断0(由开关按键触发，该中断只用于唤醒单片机)=================
     // if (INT0IF & INT0IE)
     // {
@@ -1124,11 +1088,25 @@ void int_isr(void) __interrupt
 
                 {
                     static u16 cnt = 0;
+
                     if (sub_mode_status == SUB_MODE_1_BEGIN)
                     {
                         cnt = 0;
                         HEATING_ON();
-                        PWM1EC = 0;
+
+                        if (PWM1EC)
+                        {
+                            // 如果pwm1正在输出，关闭它
+                            PWM1EC = 0;
+                            flag_is_enable_pwm0_in_isr = 1; // 一旦定时结束，打开 pwm0
+                        }
+                        else
+                        {
+                            // 如果pwm0正在输出，关闭它
+                            PWM0EC = 0;
+                            flag_is_enable_pwm0_in_isr = 0; // 一旦定时结束，打开 pwm1
+                        }
+
                         sub_mode_status = SUB_MODE_1_HANDLING;
                     }
                     else if (sub_mode_status == SUB_MODE_1_HANDLING)
@@ -1137,13 +1115,22 @@ void int_isr(void) __interrupt
                         if (cnt >= 1000)
                         {
                             cnt = 0;
-                            PWM0EC = 1;
+                            if (flag_is_enable_pwm0_in_isr)
+                            {
+                                PWM0EC = 1;
+                            }
+                            else
+                            {
+                                PWM1EC = 1;
+                            }
+
                             sub_mode_status = SUB_MODE_1_END;
                         }
                     }
                     else
                     {
                         cnt = 0;
+                        flag_is_enable_pwm0_in_isr = 0;
                     }
                 }
 
@@ -1189,7 +1176,7 @@ void int_isr(void) __interrupt
                     }
                 } // 关机电量检测
 
-                { // 充电时，调节电流时间间隔控制
+                { // 充电时，调节电流时间间隔控制；另外加入了充电累计时间计数
                     static u16 update_current_time_cnt;
                     if (FLAG_IS_IN_CHARGING)
                     {
@@ -1199,28 +1186,20 @@ void int_isr(void) __interrupt
                             update_current_time_cnt = 0;
                             flag_is_update_current = 1;
                         }
+
+                        charge_time_cnt++;
                     }
                     else
                     {
-                        FLAG_IS_IN_CHARGING = 0;
+                        // FLAG_IS_IN_CHARGING = 0;
                     }
 
-                } // 充电时，调节电流时间间隔控制
-
-                {
-                    static u16 cnt = 0;
-                    cnt++;
-                    if (cnt > 500)
-                    {
-                        cnt = 0;
-                        flag_is_adjust_pwm_time_comes = 1;
-                    }
-                }
+                } // 充电时，调节电流时间间隔控制；另外加入了充电累计时间计数
             }
         }
 
         // 呼吸灯控制：
-        if (FLAG_IS_IN_CHARGING && 0 == FLAG_BAT_IS_FULL)
+        if (FLAG_IS_IN_CHARGING && 0 == FLAG_BAT_IS_FULL && 0 == flag_is_led_breath_disable)
         {
             // PWM控制
             if (pwm_counter < pwm_duty)
@@ -1287,8 +1266,6 @@ void int_isr(void) __interrupt
 
         T3IF = 0;
     }
-
-#endif
 
     __asm;
     swapar _statusbuf;
